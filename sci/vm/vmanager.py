@@ -191,6 +191,7 @@ class VManager(Manager):
         ]) > 0:
             from desktop_env.providers.vmware.manager import _update_vm
             dir_name = f"VM-{len(vmxs)}"
+            vmx_name = f"{dir_name}.vmx"
             _update_vm(self.path, dir_name)
 
         self.path = os.path.normpath(os.path.join(base_path, dir_name, vmx_name))
