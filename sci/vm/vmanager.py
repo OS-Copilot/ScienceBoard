@@ -177,6 +177,9 @@ class VManager(Manager):
             return re.search(r'uuid.location = "(.*?)"', vmx)[1]
 
     def __vmx_unify(self, vmxs) -> Dict[str, str]:
+        vmx_path, vmx_name = os.path.split(self.path)
+        base_path, dir_name = os.path.split(vmx_path)
+
         assert len([
             item for item in vmxs
             if item["path"] == os.path.normpath(self.path)
@@ -187,10 +190,12 @@ class VManager(Manager):
             if item["loc"] == self.location_uuid
         ]) > 0:
             from desktop_env.providers.vmware.manager import _update_vm
-            _update_vm(self.path, f"Ubuntu")
+            dir_name = f"VM-{len(vmxs)}"
+            _update_vm(self.path, dir_name)
 
+        self.path = os.path.normpath(os.path.join(base_path, dir_name, vmx_name))
         vmxs.append({
-            "path": os.path.normpath(self.path),
+            "path": self.path,
             "loc": self.location_uuid
         })
         return vmxs

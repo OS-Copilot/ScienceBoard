@@ -85,6 +85,9 @@ The infrastructure of the framework is based on [OSWorld](https://github.com/xla
     - `debug`: finish the tasks manually instead of calling models;
     - `relative`: allow VM to execute `pyautogui` codes with relative coordinates; basically used by InternVL-3.
 
+> [!CAUTION]
+> Pay attention to `/tmp/sci_board.cfg` where configs of `parallel` are stored when it is set to `True`. Abnormal exit (such as `kill`) may lead to  fatal inconsistency.
+
 ### 🚧 Possible Exceptions
 1. Error when initializing:
 
@@ -159,6 +162,33 @@ The infrastructure of the framework is based on [OSWorld](https://github.com/xla
 
     fail to authenticate in newly downloaded images; input password once manually in VMWare and take a new snapshot using the same name as before and delete the former one.
 
+3. VM is mistakenly occupied when `parallel` is set to `True`:
+
+    ```shell
+    Traceback (most recent call last):
+        File "sci/Tester.py", line 353, in __traverse
+            new_task = self.__load(unknown_path)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "sci/Tester.py", line 340, in __load
+            manager=self.__manager(type_sort),
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "sci/Tester.py", line 322, in __manager
+            manager = manager_class(**manager_args)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "sci/KAlgebra/kalgebra.py", line 113, in __init__
+            super().__init__(*args, **kwargs)
+        File "sci/vm/vmanager.py", line 74, in __init__
+            self.__vmx_path()
+        File "sci/vm/vmanager.py", line 206, in __vmx_path
+            vmxs_cfg = self.__vmx_unify(self.__read_vmx_cfg())
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "sci/vm/vmanager.py", line 180, in __vmx_unify
+            assert len([
+                ^^^^^
+        AssertionError: VM already in use
+    ```
+
+    the remaining config of `/tmp/sci_board.cfg` failed to be cleared automatically; try to delete it manually.
 
 ## 🧑‍💻 Development Manual
 ### 🧩 Introduction of New Apps
