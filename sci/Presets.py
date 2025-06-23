@@ -14,6 +14,7 @@ from . import TypeSort
 Config: TypeAlias = Dict[TypeSort, Callable[[], Dict[str, Any]]]
 def spawn_managers(
     vm_headless: bool = False,
+    vm_parallel: bool = False,
     vm_path: Optional[str] = None
 ) -> Config:
     return {
@@ -21,6 +22,7 @@ def spawn_managers(
             "version": "0.1",
             "vm_path": vm_path,
             "headless": vm_headless,
+            "parallel": vm_parallel,
             "port": 8000
         },
         TypeSort.Raw("ChimeraX"): lambda: {

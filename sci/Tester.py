@@ -233,6 +233,7 @@ class Tester:
         obs_types: Set[str] = {OBS.screenshot},
         vm_path: Optional[str] = None,
         headless: bool = False,
+        parallel: bool = False,
         ignore: bool = True,
         debug: bool = False,
         optimize: bool = True,
@@ -283,7 +284,7 @@ class Tester:
 
         # manager in managers should not be Manager itself
         assert hasattr(handle_managers, "__call__")
-        self.manager_args = handle_managers(headless, vm_path)
+        self.manager_args = handle_managers(headless, parallel, vm_path)
         self.managers = {}
         self.modules = Presets.spawn_modules()
 

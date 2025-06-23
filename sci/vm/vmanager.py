@@ -4,6 +4,8 @@ import re
 import json
 import zipfile
 import subprocess
+import threading
+import atexit
 
 from io import BytesIO
 from typing import Optional, Union, Iterable, Tuple, Dict, Any
@@ -11,6 +13,7 @@ from typing import Self, NoReturn, Callable, TypedDict, NotRequired
 
 import requests
 from PIL import Image
+from filelock import FileLock
 
 sys.dont_write_bytecode = True
 from ..base import Manager
@@ -21,6 +24,10 @@ from .. import Prompts
 from . import utils
 
 ENVS = {}
+VMXS = "/tmp/sci_board.cfg"
+LOCK = "/tmp/sci_board.lock"
+
+thread_lock = threading.Lock()
 
 class VirtualEnv(TypedDict):
     provider_name: NotRequired[str]
@@ -51,6 +58,7 @@ class VManager(Manager):
         vm_path: Optional[str] = None,
         headless: bool = False,
         a11y_tree_limit: int = 10240,
+        parallel: bool = False,
         **kwargs
     ) -> None:
         super().__init__(version)
@@ -58,6 +66,12 @@ class VManager(Manager):
 
         assert isinstance(headless, bool)
         self.headless = headless
+
+        assert isinstance(parallel, bool)
+        self.parallel = parallel
+
+        if self.parallel:
+            self.__vmx_path()
 
         self.env = VirtualEnv(
             provider_name="vmware",
@@ -144,6 +158,58 @@ class VManager(Manager):
                 f"press ENTER to continue: "
             ), end="")
             assert self._create_snapshots(VManager.INIT_NAME) is True
+
+    def __write_vmx_cfg(self, obj):
+        with open(VMXS, mode="w", encoding="utf-8") as writable:
+            json.dump(obj, writable)
+
+    def __read_vmx_cfg(self):
+        if not os.path.exists(VMXS):
+            self.__write_vmx_cfg([])
+        with open(VMXS, mode="r", encoding="utf-8") as readable:
+            content = readable.read()
+            return json.loads("[]" if content == "" else content)
+
+    @property
+    def location_uuid(self):
+        with open(self.path, mode="r", encoding="utf-8") as readable:
+            vmx = readable.read()
+            return re.search(r'uuid.location = "(.*?)"', vmx)[1]
+
+    def __vmx_unify(self, vmxs) -> Dict[str, str]:
+        assert len([
+            item for item in vmxs
+            if item["path"] == os.path.normpath(self.path)
+        ]) == 0, "VM already in use"
+
+        if len([
+            item for item in vmxs
+            if item["loc"] == self.location_uuid
+        ]) > 0:
+            from desktop_env.providers.vmware.manager import _update_vm
+            _update_vm(self.path, f"Ubuntu-{len(vmxs)}")
+
+        vmxs.append({
+            "path": os.path.normpath(self.path),
+            "loc": self.location_uuid
+        })
+        return vmxs
+
+    def __vmx_path(self):
+        with thread_lock:
+            with FileLock(LOCK):
+                vmxs_cfg = self.__vmx_unify(self.__read_vmx_cfg())
+                self.__write_vmx_cfg(vmxs_cfg)
+
+        def remove_uuid():
+            with thread_lock:
+                with FileLock(LOCK):
+                    vmxs_cfg = self.__read_vmx_cfg()
+                    self.__write_vmx_cfg([
+                        item for item in vmxs_cfg
+                        if item["path"] != os.path.normpath(self.path)
+                    ])
+        atexit.register(remove_uuid)
 
     @staticmethod
     def _env_handler(method: Callable) -> Callable:
