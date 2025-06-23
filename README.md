@@ -80,6 +80,7 @@ The infrastructure of the framework is based on [OSWorld](https://github.com/xla
     - `tasks_path`: the directory or file path for json file(s) of task(s); all `*.json` files under the path specified will be recursively loaded when a directory path is provided;
     - `logs_path`: the directory path for log files and will be created automatically when not existed; the structure of the directory will be arranged according to that under `tasks_path`;
     - `community`: the way of cooperation among multiple agents; use [`AllInOne`](sci/base/community.py?plain=1#L52) for standard setting inherited from OSWorld;
+    - `parallel`: run multiple VMs at the same time in a single machine; multi-process or multi-thread are both supported;
     - `ignore`: skipped when log indicates that the task is finished (by checking the existence of `result.out`) if set to `True`; so you can re-run the same program to retry failure cases only;
     - `debug`: finish the tasks manually instead of calling models;
     - `relative`: allow VM to execute `pyautogui` codes with relative coordinates; basically used by InternVL-3.

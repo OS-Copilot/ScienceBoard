@@ -187,7 +187,7 @@ class VManager(Manager):
             if item["loc"] == self.location_uuid
         ]) > 0:
             from desktop_env.providers.vmware.manager import _update_vm
-            _update_vm(self.path, f"Ubuntu-{len(vmxs)}")
+            _update_vm(self.path, f"Ubuntu")
 
         vmxs.append({
             "path": os.path.normpath(self.path),
