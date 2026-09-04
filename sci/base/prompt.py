@@ -108,6 +108,11 @@ class CodeLike:
     desc: bool = False
     prefix: str = ""
 
+    # A Markdown fence language is only valid on its own opening line.  The
+    # old ``\w*\s+`` prefix also swallowed primitives with arguments, turning
+    # ``ANS 1966-047A`` into ordinary code ``1966-047A``.
+    FENCED_BLOCK = r'```(?:[A-Za-z][\w+.-]*[ \t]*\r?\n)?([\w\W]*?)```'
+
     @staticmethod
     def parse_tags(tags):
         tag_prefix = ""
@@ -147,7 +152,7 @@ class CodeLike:
     @_tag_handler
     @staticmethod
     def extract_antiquot(content: TextContent) -> List[Self]:
-        return CodeLike.match(r'```(?:\w*\s+)?([\w\W]*?)```', content)
+        return CodeLike.match(CodeLike.FENCED_BLOCK, content)
 
     @staticmethod
     def wrap_antiquot(doc_str: str) -> str:
@@ -162,7 +167,7 @@ class CodeLike:
     ) -> List[Self]:
         codes = [
             code for code in CodeLike.match(
-                r'```(?:\w*\s+)?([\w\W]*?)```',
+                CodeLike.FENCED_BLOCK,
                 content
             ) if code.is_primitive(primitives)
         ]

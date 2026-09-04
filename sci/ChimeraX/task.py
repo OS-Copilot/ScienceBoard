@@ -71,7 +71,7 @@ class TaskMixin:
         # check the inexistence of item
         check_null = "value" in eval_item and eval_item["value"] is None
 
-        raw_key = None
+        raw_keys: List[str]
         if key.startswith("lambda"):
             key: Callable[[str], Union[str, bool]] = eval(key)
 
@@ -85,37 +85,40 @@ class TaskMixin:
                 key for key, value in current_states.items()
                 if find(key, value)
             ]
-            if check_null:
-                return len(raw_keys) == 0
-            raw_key: str = key(meta_keys[0])
+            raw_keys = [key(meta_key) for meta_key in meta_keys]
 
         # find raw_key directly using key(key)
         # type of key: str -> bool
         elif hasattr(key, "__call__"):
             raw_keys: List[str] = list(filter(key, current_states.keys()))
-            if check_null:
-                return len(raw_keys) == 0
-            raw_key: str = raw_keys[0]
 
         # key itself is raw_key
         # type of key: str
         else:
-            if check_null:
-                return raw_key not in current_states
-            raw_key: str = key
+            raw_keys = [key] if key in current_states else []
 
-        # get targeted raw_value by raw_key
-        raw_value: Any = current_states[raw_key]
+        raw_keys = [raw_key for raw_key in raw_keys if raw_key in current_states]
+        if check_null:
+            return len(raw_keys) == 0
+        if len(raw_keys) == 0:
+            return False
+
+        raw_values: List[Any] = [current_states[raw_key] for raw_key in raw_keys]
 
         # cast to str first
         if pattern is not None:
-            if not isinstance(raw_value, str):
-                raw_value: str = json.dumps(raw_value)
-            return re.search(pattern, raw_value) is not None
+            return any(
+                re.search(
+                    pattern,
+                    raw_value if isinstance(raw_value, str)
+                    else json.dumps(raw_value),
+                ) is not None
+                for raw_value in raw_values
+            )
         # extract match
         # no assumptions for value type
         elif value is not None:
-            return value == raw_value
+            return any(value == raw_value for raw_value in raw_values)
         return False
 
     # prerequisite of calling TaskMixin._eval_info:
@@ -132,7 +135,9 @@ class TaskMixin:
         log_message, _ = self.manager._call(f"info {key}")
         nested_logs = [log.strip().split("\n") for log in log_message]
         info_list = [log for logs in nested_logs for log in logs if log != ""]
-        return set(info_list) == set(value)
+        # Ignore presentation order, but preserve multiplicity.  Set equality
+        # allowed a duplicated/missing line to pass accidentally.
+        return sorted(info_list) == sorted(value)
 
     @error_factory(False)
     def _eval_file(
@@ -152,7 +157,20 @@ class TaskMixin:
     # - task.evaluate
     # - task.manager.status_dump()
     def eval(self: Union["RawTask", "VMTask"]) -> bool:
-        current_states = self.manager.states_dump()
+        try:
+            current_states = self.manager.states_dump()
+        except Exception as exc:
+            # Closing/crashing ChimeraX is an ordinary failed task outcome,
+            # not an infrastructure skip.  Verifiers must fail closed when
+            # the application state endpoint is unavailable.
+            self.vlog.info(
+                "Evaluation failed because ChimeraX state is unavailable: "
+                f"{type(exc).__name__}."
+            )
+            return False
+        if not isinstance(current_states, dict):
+            self.vlog.info("Evaluation failed because ChimeraX state is invalid.")
+            return False
         for eval_item in self.evaluate:
             eval_type = eval_item["type"]
             # eval_func is not bound method because of the decorator factory?

@@ -12,6 +12,20 @@
 
 Code, environment and data for "ScienceBoard: Evaluating Multimodal Autonomous Agents in Realistic Scientific Workflows"
 
+> **Docker migration:** this checkout adds a Docker-native desktop backend for
+> headless cloud servers. Runtime use does not require VMware or KVM. See the
+> [feasibility assessment](docs/feasibility.md),
+> [architecture](docs/architecture.md), and
+> [cloud quick start](docs/cloud-quickstart.md). The original VMware mode is
+> retained for compatibility and reference-image maintenance.
+>
+> The local Docker pipeline is operational: all six application families
+> initialize, the deterministic 20-task subset has completed with a real
+> model, and a final end-to-end key-bank canary passed. Run
+> `./run.sh --mode docker --check`, then follow the cloud quick start. Known
+> environment and upstream-service limits are tracked in
+> [known issues](docs/known-issues.md).
+
 
 ## 🗞️ Updates
 
@@ -24,7 +38,21 @@ Code, environment and data for "ScienceBoard: Evaluating Multimodal Autonomous A
 
 
 ## 🛠️ Usage
-### 📦 Installation
+### 🐳 Docker on a headless/cloud host
+
+After loading or building the sanitized `scienceboard:0.1` image and filling
+`.env`, no VMware process or VM file is needed:
+
+```bash
+./run.sh --mode docker --check
+./scripts/materialize_smoke_subset.py
+./run.sh --mode docker --tasks .artifacts/smoke20 --no-ignore
+```
+
+Image creation/transfer, resource sizing, key-bank configuration, and full
+suite commands are in [the cloud quick start](docs/cloud-quickstart.md).
+
+### 📦 Legacy VMware/raw installation
 The infrastructure of the framework is based on [OSWorld](https://github.com/xlang-ai/OSWorld) together with VMware Workstation Pro (which is free for personal use since May, 2024) in Ubuntu or Windows. Please make sure that your device meets the minimal requirements of these preliminaries.
 
 1. Download [VMware Workstation Pro 17](https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro&freeDownloads=true) and our pre-made images from [Hugging Face](https://huggingface.co/OS-Copilot/ScienceBoard-Env/blob/main/VM.zip);

@@ -1,5 +1,6 @@
 import sys
 import os
+import shlex
 
 from typing import Optional, Dict, Any
 from typing import Callable, TypeAlias
@@ -55,6 +56,41 @@ def spawn_managers(
             "version": "0.1",
             "lib_path": os.environ["LEAN_LIB_PATH"],
         }
+    }
+
+
+def spawn_docker_managers(
+    _headless: bool = True,
+    docker_image: Optional[str] = None,
+) -> Config:
+    """Return VM-task manager arguments backed by a Docker container.
+
+    The callable deliberately has the same two-argument shape as
+    ``spawn_managers`` because ``Tester`` treats provider configuration as a
+    dependency-injected factory.
+    """
+    if not docker_image:
+        raise ValueError("DOCKER_IMAGE (or --docker-image) is required")
+
+    return {
+        TypeSort.VM: lambda: {
+            "version": "0.1",
+            # Tester retains the legacy vm_path field for VM-sort tasks.  The
+            # manager receives an explicit image/backend so it never treats
+            # this value as a host filesystem path.
+            "vm_path": docker_image,
+            "docker_image": docker_image,
+            "provider_name": "docker",
+            "headless": True,
+            "port": 8000,
+            "docker_binary": os.environ.get("DOCKER_BINARY", "docker"),
+            "docker_startup_timeout": int(
+                os.environ.get("DOCKER_STARTUP_TIMEOUT", "240")
+            ),
+            "docker_run_args": shlex.split(
+                os.environ.get("DOCKER_RUN_ARGS", "")
+            ),
+        },
     }
 
 def spawn_modules(manager_args: Optional[Config] = None):

@@ -82,6 +82,7 @@ class AutomataType(TypedDict):
     context_window: NotRequired[int]
     hide_text: NotRequired[bool]
     code_style: NotRequired[str]
+    mirror_system_to_user: NotRequired[bool]
 
 
 # Automata receive keyword args from Model and Agent
@@ -201,7 +202,7 @@ class TaskGroup:
         for task_info in raw:
             assert isinstance(task_info, TaskInfo)
             if last_info is not None \
-                and task_info.task.type_sort == last_info.task.type_sort:
+                and str(task_info.task.type_sort) == str(last_info.task.type_sort):
                 self.groups[-1].append(task_info)
             else:
                 self.groups.append([task_info])

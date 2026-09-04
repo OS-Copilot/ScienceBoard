@@ -18,6 +18,7 @@ class RawManager(Manager):
     Message = Dict[str, Union[str, int]]
     REPL_URL = "https://github.com/leanprover-community/repl"
     TIMEOUT = 120
+    READY_FILENAME = ".scienceboard-ready"
 
     # lower version NG (e.g. v4.9.0)
     VERSION_MAP = {
@@ -35,17 +36,20 @@ class RawManager(Manager):
         assert version in RawManager.VERSION_MAP
         super().__init__(version)
 
-        self.lib_path = lib_path
-        self.cwd_path = os.path.join(lib_path, "test/Mathlib")
+        assert isinstance(lib_path, str) and lib_path
+        self.lib_path = os.path.abspath(os.path.expanduser(lib_path))
+        self.cwd_path = os.path.join(self.lib_path, "test/Mathlib")
 
         self.set_headers(lambda _: [])
         self.history: List[Union[REPLOutput, REPLOutputTactic]] = []
 
-        # download REPL and Mathlib
-        if not os.path.exists(os.path.join(lib_path, ".git")):
+        # Download REPL and Mathlib. A checkout alone is not sufficient because
+        # setup may have been interrupted before the build artifacts existed.
+        if not os.path.exists(os.path.join(self.lib_path, ".git")):
             self.__fetch()
-        else:
-            self.__version()
+        self.__version()
+        if not os.path.exists(os.path.join(self.lib_path, self.READY_FILENAME)):
+            self.__build()
 
     def set_headers(self, func: Callable) -> None:
         setattr(self.__class__, "headers", property(func))
@@ -53,13 +57,19 @@ class RawManager(Manager):
     def __fetch(self) -> None:
         assert os.system(f"git clone {RawManager.REPL_URL} {self.lib_path}") == 0
 
+    def __build(self) -> None:
         with utils.temp_chdir(self.lib_path):
-            self.__version()
             assert os.system("lake build repl") == 0
 
         with utils.temp_chdir(self.cwd_path):
             assert os.system("lake exe cache get") == 0
             assert os.system("lake build Mathlib") == 0
+
+        open(
+            os.path.join(self.lib_path, self.READY_FILENAME),
+            mode="w",
+            encoding="utf-8"
+        ).close()
 
     def __version(self):
         tag_name = RawManager.VERSION_MAP[self.version]["tag"]

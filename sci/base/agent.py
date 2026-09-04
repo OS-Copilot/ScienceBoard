@@ -57,7 +57,8 @@ class Agent:
         overflow_style: Optional[str] = None,
         context_window: int = 3,
         hide_text: bool = False,
-        code_style: str = "antiquot"
+        code_style: str = "antiquot",
+        mirror_system_to_user: bool = False
     ) -> None:
         assert isinstance(model, Model)
         self.model = model
@@ -74,6 +75,9 @@ class Agent:
 
         assert isinstance(hide_text, bool)
         self.hide_text = hide_text
+
+        assert isinstance(mirror_system_to_user, bool)
+        self.mirror_system_to_user = mirror_system_to_user
 
         assert hasattr(CodeLike, handler_name:=f"extract_{code_style}")
         self.code_style = code_style
@@ -210,8 +214,22 @@ class AIOAgent(Agent):
         opening = self.USER_OPENING[obs_keys]
         slots = [key for _, key, _, _ in formatter.parse(opening) if key]
 
+        # Some OpenAI-compatible gateways accept system messages but silently
+        # discard them when routing to an Anthropic model.  For those gateways,
+        # mirror the complete prompt into the user turn so the task and action
+        # format survive the translation.  Escape braces because user text is
+        # passed through ``str.format`` when observations are substituted.
+        system_prefix = ""
+        if self.mirror_system_to_user:
+            system_text = "\n".join(
+                content.text for content in self.system_message.content
+                if isinstance(content, TextContent)
+            )
+            system_text = system_text.replace("{", "{{").replace("}", "}}")
+            system_prefix = f"Follow these instructions:\n{system_text}\n\n"
+
         contents = [
-            TextContent(opening + self.USER_FLATTERY, {
+            TextContent(system_prefix + opening + self.USER_FLATTERY, {
                 slot: utils.getitem(obs, slot, None)
                 for slot in slots
             })

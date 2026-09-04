@@ -1,0 +1,23 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Firefox Web Browser
+GenericName=Web Browser
+Comment=Browse the Web
+Keywords=Internet;WWW;Browser;Web;Firefox;
+Exec=/usr/local/bin/scienceboard-firefox %u
+Icon=/opt/firefox-snap/default256.png
+Terminal=false
+StartupNotify=true
+StartupWMClass=firefox
+Categories=GNOME;GTK;Network;WebBrowser;
+MimeType=text/html;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+Actions=new-window;private-window;
+
+[Desktop Action new-window]
+Name=Open a New Window
+Exec=/usr/local/bin/scienceboard-firefox -new-window
+
+[Desktop Action private-window]
+Name=Open a New Private Window
+Exec=/usr/local/bin/scienceboard-firefox -private-window

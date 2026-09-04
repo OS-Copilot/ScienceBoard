@@ -24,8 +24,9 @@ def vm_download(url: str, path: str, manager: "VManager") -> bool:
     filename = os.path.split(path)[1]
     temp_path = os.path.join(manager.temp_dir, filename)
     if raw_download(url, temp_path):
-        # do not use manager.write_file because it only supports textual files
-        return manager._vmrun("CopyFileFromHostToGuest", temp_path, path)[1]
+        # Binary uploads use the control service and therefore work for both
+        # VMware and Docker backends.
+        return manager.upload_file(temp_path, path)
 
 def vm_touch(text: str, path: str, manager: "VManager") -> bool:
     return manager.write_file(path, text)

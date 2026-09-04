@@ -1,0 +1,10 @@
+services:
+  desktop:
+    image: ${DOCKER_IMAGE:-scienceboard:0.1}
+    init: true
+    shm_size: 2gb
+    environment:
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      GALLIUM_DRIVER: llvmpipe
+    ports:
+      - "127.0.0.1:5000:5000"

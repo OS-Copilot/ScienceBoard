@@ -1,0 +1,6 @@
+**
+!docker/
+!docker/**
+!vm_config/
+!vm_config/server.py
+!vm_config/pyxcursor.py
