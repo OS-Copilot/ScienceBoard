@@ -47,8 +47,8 @@ versions and assets are:
 The guest uses about 36 GiB.  Rebuilding every historic package from current
 repositories would be brittle and would change rendering and verifier
 behavior.  The primary image path therefore imports the configured reference
-root filesystem once and applies a small Docker overlay.  The resulting image
-can be pushed to a private registry and used without VMware.
+root filesystem once and applies a small Docker overlay. The resulting image
+can be transferred through a private artifact channel and used without VMware.
 
 ## Mapping VMware behavior to Docker
 

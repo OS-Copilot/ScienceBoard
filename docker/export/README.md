@@ -19,8 +19,11 @@ The importer first applies the runtime/sanitizing overlay and then flattens
 the resulting filesystem. Only the final `scienceboard:0.1` image should be
 distributed; the local `scienceboard-rootfs:0.1` and
 `scienceboard-layered:0.1` build inputs can contain data in historical layers.
-The exporter also excludes SSH identity material, shell histories, persistent
-machine identity, random seeds, and NetworkManager connection secrets.
+The exporter also excludes SSH/GnuPG/Git identity material, shell and editor
+histories, browser profiles, persistent machine identity, random seeds, and
+NetworkManager connection secrets. The reproducible Mathlib package cache is
+retained because Lean verification depends on it; other per-user caches are
+removed by the runtime overlay.
 
 The export deliberately uses `/home/user`, not `/tmp`, because the reference
 guest clears `/tmp` during a clean shutdown.  It also omits `/proc`, `/sys`,
@@ -29,5 +32,6 @@ filesystems.  The script accepts GNU tar's “file changed” status only after 
 full gzip test and an explicit check for the custom applications, Lean
 project, and GRASS datasets.
 
+Run `scripts/audit_distribution.py --image scienceboard:0.1` after importing.
 Do not publish the resulting image until ChimeraX redistribution terms have
-been reviewed.  A local image or private registry is the expected default.
+been reviewed. A local image or private registry is the expected default.

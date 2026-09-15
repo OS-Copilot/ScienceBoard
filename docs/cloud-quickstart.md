@@ -13,15 +13,17 @@ Celestia, TeX, and Lean startup time.
 Load an image supplied through your private artifact channel:
 
 ```bash
-docker load --input scienceboard-0.1-image.tar.gz
+sha256sum -c scienceboard-docker-0.1.tar.zst.sha256
+zstd -dc scienceboard-docker-0.1.tar.zst | docker load
 docker image inspect --format \
   '{{.Architecture}} {{index .Config.Labels "org.scienceboard.distribution"}}' \
   scienceboard:0.1
 ```
 
 Expected output is `amd64 sanitized-flat`. Maintainers can create a transport
-archive with `docker save scienceboard:0.1 | gzip -1 > scienceboard-0.1-image.tar.gz`
-and load it with `gzip -dc ... | docker load`.
+archive with `scripts/package_distribution.sh scienceboard:0.1` and follow
+[`image-delivery.md`](image-delivery.md) for private-review and public-release
+constraints.
 
 Maintainers can instead create it from the reference guest using
 [`docker/export/README.md`](../docker/export/README.md).  That one-time export

@@ -6,6 +6,7 @@ FROM ${BASE_IMAGE}
 # layer. This file restores image metadata, which export does not preserve.
 LABEL org.opencontainers.image.title="ScienceBoard desktop"
 LABEL org.opencontainers.image.description="Containerized ScienceBoard 0.1 reference environment"
+LABEL org.opencontainers.image.source="https://github.com/OS-Copilot/ScienceBoard"
 LABEL org.scienceboard.version="0.1"
 LABEL org.scienceboard.distribution="sanitized-flat"
 

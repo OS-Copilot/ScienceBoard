@@ -38,16 +38,67 @@ tar --numeric-owner --one-file-system --warning=no-file-changed --ignore-failed-
   --exclude='./home/user/scienceboard-rootfs*' \
   --exclude='./etc/ssh/ssh_host_*' \
   --exclude='./root/.ssh' --exclude='./home/user/.ssh' \
+  --exclude='./root/.gnupg' --exclude='./home/user/.gnupg' \
+  --exclude='./root/.gitconfig' --exclude='./home/user/.gitconfig' \
+  --exclude='./root/.git-credentials' --exclude='./home/user/.git-credentials' \
+  --exclude='./root/.netrc' --exclude='./home/user/.netrc' \
+  --exclude='./root/.npmrc' --exclude='./home/user/.npmrc' \
+  --exclude='./root/.pypirc' --exclude='./home/user/.pypirc' \
+  --exclude='./root/.config/pip/pip.conf' \
+  --exclude='./home/user/.config/pip/pip.conf' \
+  --exclude='./root/.aws' --exclude='./home/user/.aws' \
+  --exclude='./root/.azure' --exclude='./home/user/.azure' \
+  --exclude='./root/.docker' --exclude='./home/user/.docker' \
+  --exclude='./root/.huggingface' --exclude='./home/user/.huggingface' \
+  --exclude='./root/.kube' --exclude='./home/user/.kube' \
+  --exclude='./root/.config/gh' --exclude='./home/user/.config/gh' \
+  --exclude='./root/.config/gcloud' --exclude='./home/user/.config/gcloud' \
+  --exclude='./root/.cache' \
+  --exclude='./home/user/.cache/mozilla*' \
+  --exclude='./home/user/.cache/google-chrome*' \
+  --exclude='./home/user/.cache/chromium*' \
+  --exclude='./home/user/.cache/Code*' \
+  --exclude='./home/user/.cache/vscode*' \
+  --exclude='./home/user/.cache/thumbnails' \
+  --exclude='./home/user/.cache/tracker3' \
+  --exclude='./home/user/.cache/vmware' \
+  --exclude='./root/.launchpadlib' \
   --exclude='./root/.bash_history' --exclude='./root/.python_history' \
   --exclude='./home/user/.bash_history' --exclude='./home/user/.python_history' \
   --exclude='*/.bash_history' --exclude='*/.python_history' \
+  --exclude='*/.lesshst' --exclude='*/.viminfo' --exclude='*/.wget-hsts' \
+  --exclude='./root/.local/share/recently-used.xbel' \
+  --exclude='./home/user/.local/share/recently-used.xbel' \
+  --exclude='./home/user/.mozilla' --exclude='./home/user/snap/firefox' \
   --exclude='*/cookies.sqlite*' --exclude='*/logins.json' \
   --exclude='*/key4.db' --exclude='*/formhistory.sqlite' \
   --exclude='*/places.sqlite*' --exclude='*/sessionstore-backups' \
   --exclude='./home/user/.config/Code/Cookies*' \
   --exclude='./home/user/.config/Code/Network Persistent State' \
+  --exclude='./home/user/.config/Code/User/globalStorage' \
+  --exclude='./home/user/.config/Code/User/workspaceStorage' \
+  --exclude='./home/user/.config/Code/User/History' \
+  --exclude='./home/user/.config/Code/Backups' \
+  --exclude='./home/user/.config/texstudio/cache' \
+  --exclude='./home/user/.config/texstudio/lastSession.txss2' \
+  --exclude='./home/user/.config/goa-1.0' \
+  --exclude='./home/user/.config/pulse' \
+  --exclude='./home/user/.config/evolution' \
+  --exclude='./home/user/.dotnet' --exclude='./home/user/.pki' \
+  --exclude='./home/user/.face' --exclude='./home/user/.face.icon' \
+  --exclude='./home/user/.local/share/Celestia/bookmarks.xbel' \
   --exclude='./home/user/.local/share/keyrings' \
+  --exclude='./home/user/.local/share/evolution' \
+  --exclude='./home/user/.local/share/gvfs-metadata' \
+  --exclude='./home/user/.local/share/nautilus/tags' \
+  --exclude='./home/user/.local/share/xorg' \
+  --exclude='./home/user/.miktex/texmfs/data/miktex/log/*' \
+  --exclude='./etc/brlapi.key' \
+  --exclude='./etc/ssl/private/ssl-cert-snakeoil.key' \
+  --exclude='./etc/ssl/certs/ssl-cert-snakeoil.pem' \
   --exclude='./var/lib/systemd/random-seed' \
+  --exclude='./var/lib/AccountsService/users/user' \
+  --exclude='./var/lib/NetworkManager/*' \
   --exclude='./etc/NetworkManager/system-connections/*' \
   --exclude='./etc/machine-id' --exclude='./var/lib/dbus/machine-id' \
   -C / -cpf - . | gzip -1 > "$archive"

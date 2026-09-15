@@ -6,10 +6,9 @@ is blocked.
 
 ## 2026-09-04
 
-- Created `/data/wya/ScienceBoard-Docker` as an independent copy at Git commit
-  `c8d5010`.  Development environments, logs, runtime caches, the 17 GiB
-  archive, and the 42 GiB extracted VMware directory were deliberately not
-  duplicated.
+- Created an independent migration checkout at Git commit `c8d5010`.
+  Development environments, logs, runtime caches, the rootfs archive, and the
+  extracted VMware directory were deliberately not duplicated.
 - Confirmed the source and copy had identical tracked code diffs at copy time
   (`sha256 7c4e5d6...`). The source checkout is now treated as
   read-only.
@@ -87,12 +86,36 @@ is blocked.
   dialog is present.
 - Final release image metadata: amd64, `org.scienceboard.version=0.1`,
   `org.scienceboard.distribution=sanitized-flat`, local image ID
-  `sha256:67c08faa6e678939f4814b84a3364e61230667db07397701f50b0c3b2a5a1f9d`,
-  and content size 13,200,057,928 bytes. Sensitive-path checks and an exact
+  `sha256:6b5e0971cdff6c1248e25ea6897e5618f65bd32efe40b9a0cdc5f9ac30919ce2`,
+  and content size 13,144,490,017 bytes. Sensitive-path checks and an exact
   key-bank-value repository scan passed with zero matches.
 - The runner rejects intermediate images that do not carry the
   `org.scienceboard.distribution=sanitized-flat` label; this prevents an
   accidental evaluation against a non-distributable historical layer.
+
+## 2026-09-15 distribution hardening
+
+- Expanded the VM export and Docker overlay rules to remove Git/GnuPG identity,
+  browser and editor histories, application recent sessions, Evolution and
+  Nautilus metadata, PulseAudio cookies, NetworkManager keys/BSSIDs/leases,
+  generated system keys, and system logs. The reusable Mathlib cache remains
+  available for offline Lean verification.
+- Added `scripts/audit_distribution.py`, which checks the flattening label and
+  layer count, sensitive paths, non-empty state directories, image environment,
+  private-key markers, and common API-token formats. The rebuilt image passes
+  with zero findings.
+- Repeated the full runtime smoke after hardening: X11/GNOME, screenshots,
+  AT-SPI, software GL, VS Code, Firefox, upload/read/write, recording, fresh
+  machine identity, immutable reset, and cleanup all pass.
+- Repeated one deliberate debug initialization for every application family:
+  6 tasks reached their verifier, with 0 backend skips. In three separate fresh
+  containers, the exact expected TeXstudio A-04, B-04, and C-03 outputs all
+  passed `/tex/check` on the first call in 0.096, 0.325, and 0.781 seconds.
+- Added an audited Zstandard packaging helper and documented private review via
+  Hugging Face/object storage. The one-layer image exceeds GHCR's per-layer
+  limit; public distribution remains subject to third-party license review.
+  The review archive is 13,092,039,138 bytes with SHA-256
+  `fe4a1caf62c130f4010295b4ff5e2d761849f9c18d27bfaa2e601d7695b65c1e`.
 
 ## Issue status
 

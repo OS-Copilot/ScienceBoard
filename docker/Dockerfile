@@ -3,6 +3,7 @@ FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="ScienceBoard desktop"
 LABEL org.opencontainers.image.description="Containerized ScienceBoard 0.1 reference environment"
+LABEL org.opencontainers.image.source="https://github.com/OS-Copilot/ScienceBoard"
 LABEL org.scienceboard.version="0.1"
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -30,6 +31,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     SCIENCEBOARD_SERVER_PORT=5000
 
 RUN install -d -m 1777 /tmp \
+    && find /etc/apt/sources.list.d -maxdepth 1 -type f \
+        -iname '*miktex*' -delete \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         at-spi2-core \
@@ -43,14 +46,42 @@ RUN install -d -m 1777 /tmp \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f \
         /etc/ssh/ssh_host_* \
+        /etc/brlapi.key \
+        /etc/ssl/private/ssl-cert-snakeoil.key \
+        /etc/ssl/certs/ssl-cert-snakeoil.pem \
         /root/.bash_history \
         /root/.python_history \
+        /root/.lesshst \
+        /root/.viminfo \
+        /root/.wget-hsts \
+        /root/.gitconfig \
+        /root/.git-credentials \
+        /root/.netrc \
+        /root/.npmrc \
+        /root/.pypirc \
+        /root/.config/pip/pip.conf \
+        /root/.local/share/recently-used.xbel \
         /home/user/.bash_history \
         /home/user/.python_history \
+        /home/user/.lesshst \
+        /home/user/.viminfo \
+        /home/user/.wget-hsts \
+        /home/user/.gitconfig \
+        /home/user/.git-credentials \
+        /home/user/.netrc \
+        /home/user/.npmrc \
+        /home/user/.pypirc \
+        /home/user/.config/pip/pip.conf \
+        /home/user/.local/share/recently-used.xbel \
         /home/user/.config/Code/Cookies \
         /home/user/.config/Code/Cookies-journal \
         /home/user/.config/Code/Network\ Persistent\ State \
+        /home/user/.config/texstudio/lastSession.txss2 \
+        /home/user/.local/share/Celestia/bookmarks.xbel \
+        /home/user/.face \
+        /home/user/.face.icon \
         /var/lib/systemd/random-seed \
+        /var/lib/AccountsService/users/user \
         /etc/NetworkManager/system-connections/* \
     && find /home/user -xdev -type f \
         \( -name .bash_history -o -name .python_history \
@@ -62,7 +93,50 @@ RUN install -d -m 1777 /tmp \
         -delete \
     && find /home/user -xdev -type d -name sessionstore-backups \
         -prune -exec rm -rf '{}' + \
-    && rm -rf /home/user/.local/share/keyrings \
+    && find /home/user/.miktex -xdev -type f -name '*.log' -delete \
+    && find /home/user/.cache -mindepth 1 -maxdepth 1 \
+        ! -name mathlib -exec rm -rf '{}' + \
+    && rm -rf \
+        /root/.cache \
+        /root/.gnupg \
+        /root/.launchpadlib \
+        /root/.aws \
+        /root/.azure \
+        /root/.docker \
+        /root/.huggingface \
+        /root/.kube \
+        /root/.config/gh \
+        /root/.config/gcloud \
+        /home/user/.gnupg \
+        /home/user/.aws \
+        /home/user/.azure \
+        /home/user/.docker \
+        /home/user/.huggingface \
+        /home/user/.kube \
+        /home/user/.config/gh \
+        /home/user/.config/gcloud \
+        /home/user/.config/goa-1.0 \
+        /home/user/.config/pulse \
+        /home/user/.config/evolution \
+        /home/user/.config/texstudio/cache \
+        /home/user/.mozilla \
+        /home/user/snap/firefox \
+        /home/user/.dotnet \
+        /home/user/.pki \
+        /home/user/.config/Code/User/globalStorage \
+        /home/user/.config/Code/User/workspaceStorage \
+        /home/user/.config/Code/User/History \
+        /home/user/.config/Code/Backups \
+        /home/user/.local/share/keyrings \
+        /home/user/.local/share/evolution \
+        /home/user/.local/share/gvfs-metadata \
+        /home/user/.local/share/nautilus/tags \
+        /home/user/.local/share/xorg \
+        /home/user/.local/share/Trash \
+        /var/lib/NetworkManager/* \
+        /var/log/journal/* \
+    && find /var/log -xdev -type f -exec truncate -s 0 '{}' + \
+    && install -d /var/lib/NetworkManager \
     && install -d -m 0700 -o user -g user \
         /home/user/.local/share/keyrings \
     && firefox_snap="$(find /var/lib/snapd/snaps -maxdepth 1 \
