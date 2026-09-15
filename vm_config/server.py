@@ -1234,14 +1234,38 @@ def tex_check():
 
     passed = lambda arg: {"pass": bool(arg)}
     def sub_check(*args):
-        return subprocess.run(args, cwd=path, text=True).returncode != 0
+        try:
+            result = subprocess.run(
+                args,
+                cwd=path,
+                text=True,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=180,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            logger.error("TeX verifier command failed: %s", exc)
+            return True
+        if result.returncode != 0:
+            logger.error(
+                "TeX verifier command exited with %s: %s\n%s",
+                result.returncode,
+                " ".join(args),
+                result.stdout[-4000:],
+            )
+        return result.returncode != 0
 
-    if sub_check("pdflatex", f"{file}.tex"):
+    # The reference VM also contains MiKTeX under /home/user/bin, which comes
+    # first in PATH and tries to initialize/update itself on a fresh snapshot.
+    # Use the bundled TeX Live tools so verification is deterministic offline.
+    latex = ("/usr/bin/pdflatex", "-interaction=nonstopmode", "-halt-on-error")
+    if sub_check(*latex, f"{file}.tex"):
         return passed(False)
     if bibtex:
-        if sub_check("bibtex", f"{file}"):       return passed(False)
-        if sub_check("pdflatex", f"{file}.tex"): return passed(False)
-        if sub_check("pdflatex", f"{file}.tex"): return passed(False)
+        if sub_check("/usr/bin/bibtex", f"{file}"): return passed(False)
+        if sub_check(*latex, f"{file}.tex"): return passed(False)
+        if sub_check(*latex, f"{file}.tex"): return passed(False)
     return passed(True)
 
 if __name__ == '__main__':
