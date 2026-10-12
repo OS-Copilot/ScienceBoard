@@ -67,6 +67,12 @@ recording_process = None  # fixme: this is a temporary solution for recording, n
 recording_path = "/tmp/recording.mp4"
 
 
+@app.route('/health', methods=['GET'])
+def health():
+    """Cheap lifecycle probe used by the Docker provider."""
+    return jsonify({"status": "ok", "display": os.environ.get("DISPLAY")})
+
+
 @app.route('/setup/execute', methods=['POST'])
 @app.route('/execute', methods=['POST'])
 def execute_command():
@@ -667,10 +673,20 @@ def get_accessibility_tree():
     if os_name == "Linux":
         desktop: Accessible = pyatspi.Registry.getDesktop(0)
         xml_node = lxml.etree.Element("desktop-frame", nsmap=_accessibility_ns_map_ubuntu)
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = [executor.submit(_create_atspi_node, app_node, 1) for app_node in desktop]
-            for future in concurrent.futures.as_completed(futures):
-                xml_tree = future.result()
+        # PyGObject/AT-SPI proxy access is not thread-safe. Parallel traversal
+        # was faster for a small desktop, but reliably segfaulted the control
+        # process once VS Code and Firefox were both present. Traverse each
+        # application serially and skip transient/defunct roots.
+        for app_node in desktop:
+            try:
+                xml_tree = _create_atspi_node(app_node, 1)
+            except Exception as exc:
+                logger.warning(
+                    "Skipping inaccessible top-level AT-SPI node: %s",
+                    type(exc).__name__,
+                )
+                continue
+            if xml_tree is not None:
                 xml_node.append(xml_tree)
         return jsonify({"AT": lxml.etree.tostring(xml_node, encoding="unicode")})
 
@@ -1211,15 +1227,20 @@ def lean_check():
                 "pass": False
             }
 
-    lake = subprocess.run(
-        ["stdbuf", "-oL", "/home/user/.elan/bin/lake", "build"],
-        cwd="/home/user/sci",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
+    try:
+        lake = subprocess.run(
+            ["stdbuf", "-oL", "/home/user/.elan/bin/lake", "build"],
+            cwd="/home/user/sci",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=300,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return {"pass": False}
 
-    no_sorry = "declaration uses 'sorry'" not in lake.stdout
+    diagnostics = lake.stdout + "\n" + lake.stderr
+    no_sorry = "declaration uses 'sorry'" not in diagnostics
     no_error = lake.returncode == 0
     return {
         "pass": no_sorry and no_error
@@ -1269,4 +1290,9 @@ def tex_check():
     return passed(True)
 
 if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0")
+    app.run(
+        debug=False,
+        threaded=True,
+        host="0.0.0.0",
+        port=int(os.environ.get("SCIENCEBOARD_SERVER_PORT", "5000")),
+    )

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "ERROR: Docker-mode test attempted to invoke vmrun" >&2
+exit 97

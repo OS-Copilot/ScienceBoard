@@ -6,7 +6,7 @@ import zipfile
 import subprocess
 
 from io import BytesIO
-from typing import Optional, Union, Iterable, Tuple, Dict, Any
+from typing import Optional, Union, Iterable, Tuple, Dict, Any, List
 from typing import Self, NoReturn, Callable, TypedDict, NotRequired
 
 import requests
@@ -34,6 +34,9 @@ class VirtualEnv(TypedDict):
     require_a11y_tree: NotRequired[bool]
     require_terminal: NotRequired[bool]
     os_type: NotRequired[str]
+    docker_binary: NotRequired[str]
+    docker_startup_timeout: NotRequired[int]
+    docker_run_args: NotRequired[List[str]]
 
 
 class VManager(Manager):
@@ -51,21 +54,38 @@ class VManager(Manager):
         vm_path: Optional[str] = None,
         headless: bool = False,
         a11y_tree_limit: int = 10240,
+        provider_name: str = "vmware",
+        docker_image: Optional[str] = None,
+        docker_binary: str = "docker",
+        docker_startup_timeout: int = 240,
+        docker_run_args: Optional[List[str]] = None,
         **kwargs
     ) -> None:
         super().__init__(version)
-        self.__vm_path(vm_path)
+
+        assert provider_name in {"vmware", "docker"}
+        self.provider_name = provider_name
+        if self.provider_name == "vmware":
+            assert vm_path is not None
+            self.__vm_path(vm_path)
+        else:
+            self.path = (docker_image or vm_path or "").strip()
+            if not self.path:
+                raise ValueError("docker_image is required for the Docker backend")
 
         assert isinstance(headless, bool)
         self.headless = headless
 
         self.env = VirtualEnv(
-            provider_name="vmware",
+            provider_name=self.provider_name,
             region=None,
             path_to_vm=self.path,
             snapshot_name=VManager.INIT_NAME,
             action_space="pyautogui",
-            headless=self.headless
+            headless=self.headless,
+            docker_binary=docker_binary,
+            docker_startup_timeout=docker_startup_timeout,
+            docker_run_args=list(docker_run_args or []),
         )
 
         assert isinstance(a11y_tree_limit, int)
@@ -83,16 +103,36 @@ class VManager(Manager):
     def env(self, value: VirtualEnv) -> None:
         # TypedDict does not support instance and class checks
         assert isinstance(value, dict)
-        self.key = json.dumps(value)
+        # Managers for different application families can have identical
+        # provider settings.  They still need independent lifecycle entries;
+        # otherwise leaving the first task group deletes the shared registry
+        # entry and the next group cannot enter its manager.
+        self.key = f"{json.dumps(value, sort_keys=True)}:{id(self)}"
 
         global ENVS
-        if self.key not in ENVS:
-            # only load desktop_env when needed
-            # to avoid impact on raw test
-            from desktop_env.desktop_env import DesktopEnv
+        if value["provider_name"] == "docker":
+            def env_factory():
+                from ..docker import DockerDesktopEnv
 
-            # prevent DesktopEnv from loading immediately
-            ENVS[self.key] = lambda: DesktopEnv(**value)
+                return DockerDesktopEnv(
+                    image=value["path_to_vm"],
+                    snapshot_name=value["snapshot_name"],
+                    docker_binary=value["docker_binary"],
+                    startup_timeout=value["docker_startup_timeout"],
+                    run_args=value["docker_run_args"],
+                )
+        else:
+            def env_factory():
+                # Only load desktop_env when needed, so Docker-only cloud
+                # deployments do not initialize a virtualization provider.
+                from desktop_env.desktop_env import DesktopEnv
+
+                return DesktopEnv(**{
+                    key: item for key, item in value.items()
+                    if not key.startswith("docker_")
+                })
+        self._env_factory = env_factory
+        ENVS[self.key] = self._env_factory
 
     @property
     def controller(self):
@@ -100,7 +140,11 @@ class VManager(Manager):
 
     @property
     def entered(self) -> bool:
-        return hasattr(self, "env") and not hasattr(self.env, "__call__")
+        return (
+            hasattr(self, "key")
+            and self.key in ENVS
+            and not hasattr(ENVS[self.key], "__call__")
+        )
 
     @entered.setter
     def entered(self, value) -> None:
@@ -159,6 +203,7 @@ class VManager(Manager):
         *args: str,
         tolerance: Iterable[int] = []
     ) -> Tuple[str, bool]:
+        assert self.provider_name == "vmware"
         assert isinstance(command, str)
         for arg in args:
             assert isinstance(arg, str)
@@ -222,7 +267,10 @@ class VManager(Manager):
         if request_method == "POST":
             if "headers" not in param:
                 param["headers"] = {}
-            if "Content-Type" not in param["headers"]:
+            # ``requests`` must generate the multipart boundary itself when a
+            # file is attached.  Forcing application/json here makes Flask
+            # see an empty ``request.files`` mapping.
+            if "files" not in param and "Content-Type" not in param["headers"]:
                 param["headers"]["Content-Type"] = "application/json"
         return request(
             base + port + pathname,
@@ -244,20 +292,24 @@ class VManager(Manager):
             self.env.snapshot_name = snapshot_name
             self.env._revert_to_snapshot()
             self.env._start_emulator()
+            # A recreated Docker container can receive a different bridge IP.
+            # Refresh application-specific REST clients after every reset.
+            self._post__enter__()
             return True
-        except:
+        except Exception as err:
+            self.vlog.error(f"Desktop reset failed: {err}")
             return False
 
     def __enter__(self) -> Self:
         global ENVS
+        assert not self.entered
         ENVS[self.key] = ENVS[self.key]()
         return super().__enter__()
 
     @_env_handler
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.env.close()
-        del ENVS[self.key]
-        del self.key
+        ENVS[self.key] = self._env_factory
         super().__exit__(exc_type, exc_value, traceback)
 
     @_env_handler
@@ -318,6 +370,7 @@ class VManager(Manager):
                 "path": file_path.replace("\\", "/")
             }
         })
+        response.raise_for_status()
         return response.text
 
     @_env_handler
@@ -341,3 +394,13 @@ class VManager(Manager):
             }
         })
         return response.text == "OK"
+
+    @_env_handler
+    @error_factory(False)
+    def upload_file(self, source_path: str, file_path: str) -> bool:
+        with open(source_path, "rb") as readable:
+            response = self._request("POST/setup/upload", {
+                "data": {"file_path": file_path.replace("\\", "/")},
+                "files": {"file_data": readable},
+            })
+        return response.status_code == 200

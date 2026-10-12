@@ -162,7 +162,7 @@ class Task:
 
         self.penalty = (2147438648, 0)
         if "penalty" in self.config:
-            match_obj = re.search("(\d+):(\d+)", self.config["penalty"])
+            match_obj = re.search(r"(\d+):(\d+)", self.config["penalty"])
             self.penalty = (int(match_obj[1]), int(match_obj[2]))
 
     @staticmethod

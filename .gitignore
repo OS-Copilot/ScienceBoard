@@ -9,6 +9,14 @@
 /logs/*
 /temp/*
 /vmware/*
+/VM.zip
+/.venv/
+/.tools/
+/runtime/
+/.artifacts/
+/.env
+__pycache__/
+*.py[cod]
 
 .vmware_lck
 .vmware_vms

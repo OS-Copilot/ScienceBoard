@@ -1,0 +1,40 @@
+{
+  "policies": {
+    "DisableAppUpdate": true,
+    "DisableDefaultBrowserAgent": true,
+    "DisableFirefoxStudies": true,
+    "DisableProfileImport": true,
+    "DisableTelemetry": true,
+    "DontCheckDefaultBrowser": true,
+    "NoDefaultBookmarks": true,
+    "OfferToSaveLogins": false,
+    "OverrideFirstRunPage": "",
+    "OverridePostUpdatePage": "",
+    "Preferences": {
+      "browser.aboutwelcome.enabled": {
+        "Status": "locked",
+        "Value": false
+      },
+      "browser.shell.checkDefaultBrowser": {
+        "Status": "locked",
+        "Value": false
+      },
+      "browser.startup.firstrunSkipsHomepage": {
+        "Status": "locked",
+        "Value": true
+      },
+      "datareporting.policy.dataSubmissionPolicyBypassNotification": {
+        "Status": "locked",
+        "Value": true
+      }
+    },
+    "UserMessaging": {
+      "ExtensionRecommendations": false,
+      "FeatureRecommendations": false,
+      "MoreFromMozilla": false,
+      "SkipOnboarding": true,
+      "UrlbarInterventions": false,
+      "WhatsNew": false
+    }
+  }
+}
