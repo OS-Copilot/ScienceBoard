@@ -53,7 +53,7 @@ parallel.
 | Celestia fork, native Qt 6.2.4 build into /app (`/app/bin/celestia-qt6`) + CelestiaContent | `guest/celestia-build.sh` | done; state server on :8000 answers `/dump` |
 | KAlgebra fork as Flatpak `org.kde.kalgebra` (org.kde.Platform/Sdk 6.7 + io.qt.qtwebengine.BaseApp 6.7; the script patches the fork at build time: skips the deb-only patchelf bundling, adds `<cstdint>` to the HTTP server, exposes `PlotsModel::m_items/m_resolution` in the installed Analitza header, installs the desktop file) with `/app/bin/kalgebra` wrapping `flatpak run --share=network` | `guest/kalgebra-flatpak.sh` | done; `/version` and `/vars` on :8000 answer |
 | ChimeraX (no arm64 build; source build) | | deferred |
-| OSWorld-V2 app delta, arm64 subset (Obsidian, MuseScore, REAPER, apt Audacity/Blender/Shotcut/LabPlot, Node.js, Chrome policy, Xorg MaxClients, MIME defaults) | `guest/v2-delta-arm64.sh` | planned |
+| OSWorld-V2 app delta, arm64 subset (Obsidian, MuseScore, REAPER, apt Audacity/Blender/Shotcut/LabPlot, Node.js, Chrome policy, Xorg MaxClients, MIME defaults) | `guest/v2-delta-arm64.sh` | done 2026-10-13; `sci_bench` rebuilt with it (Obsidian 1.10.6, MuseScore 4.6.0, REAPER 7.64, apt Audacity 2.4.2 / Blender 3.0.1 / Shotcut 22.01 / LabPlot 2.8.2, Node.js) |
 
 GRASS data differs from the reference VM: the sample datasets are downloaded
 from grass.osgeo.org and the two hand-placed points used by D-04 are not
@@ -129,8 +129,9 @@ before a run.
 
 Task classes (108) and the asset snapshot (4.6 GB) for osworld-v2.1 are in
 `~/Git-Repos/OSWorld-V2` (`evaluation_examples/task_class`,
-`cache/osworld_v2_assets_v2.1`). 7 tasks depend on the mocked websites and 2 on
-GitLab; 66 need only OSWorld-base applications; the rest need the V2 app delta
+`cache/osworld_v2_assets_v2.1`). 25 tasks depend on the mocked websites (19 of the OSWorld-web services;
+mailhub, streamview, teamchat most often) and 2 on GitLab; 66 need only
+OSWorld-base applications; the rest need the V2 app delta
 (WPS 13, Shotcut 6, Zotero 5, REAPER 3, LabPlot 2, MuseScore 2, Obsidian 2,
 Blender 1).
 
@@ -140,3 +141,39 @@ setup and evaluation with score 0 and no exception (415 s). Task 002's setup
 launches a task-local web app (`/tmp/Class-Planner/run.py`) that timed out
 after 120 s, so the V2 delta's Node.js/Python runtime pieces are still needed
 for such tasks.
+
+After the delta, `v2_vmware_smoke.py` ran 002 (task-local web app still fails
+to launch; score 0, no exception), 083 (Obsidian + Zotero reading list; score 0,
+no exception). V2 task modules import the website controller, which raises at
+import time when `WEBSITE_HOST_SUFFIX` is unset, so set it (any value) even for
+tasks that use no website; the planned real value is `172.16.120.1.nip.io`, the
+VM's NAT gateway address on the Mac, once OSWorld-web is self-hosted.
+
+## Mock websites (OSWorld-web) on this Mac
+
+Docker Desktop's cask needs sudo, so the Docker runtime is Colima (`brew install
+colima docker docker-compose docker-buildx`; compose/buildx plugins symlinked
+into `~/.docker/cli-plugins`; VM 4 CPU / 6 GB, vz, arm64). Colima's Ubuntu VM
+came up without a working resolver (`/etc/resolv.conf` -> missing
+systemd-resolved stub), fixed with a static `/etc/resolv.conf` (1.1.1.1,
+8.8.8.8) inside the VM; redo it after `colima delete`. Published ports are
+reachable from the Fusion guest at the vmnet8 host address `172.16.120.1`, so
+`WEBSITE_HOST_SUFFIX=172.16.120.1.nip.io` resolves `<app>.172.16.120.1.nip.io`
+to Caddy on the Mac from both host and guest. `~/Git-Repos/OSWorld-web` is the
+osworld-v2.1 checkout; `gen-compose.sh` needs bash >= 4 (`/opt/homebrew/bin/bash`).
+
+`osworld_web_up.sh` builds every OSWorld-web service except `overleaf*` one
+image at a time and starts them behind Caddy; on 2026-10-13 all 19 hostnames
+used by osworld-v2.1 tasks answered 200 at `http://<app>.172.16.120.1.nip.io/`
+from the Mac. The overleaf and overleaf-collab apps (task 081) depend on the
+amd64-only `sharelatex/sharelatex:6.1.2` image; Colima was started with
+`--vz-rosetta`, so they can be tried under emulation later.
+
+The guest resolves names through the Mac, where a local proxy answers
+`*.172.16.120.1.nip.io` with a fake address (2001:2::3c), so
+`guest/hosts-mocksites.sh` pins the 25 OSWorld-web hostnames to 172.16.120.1
+in the guest's `/etc/hosts`; `sci_bench` was rebuilt with that pin. With the
+mock sites up, `v2_vmware_smoke.py` ran 068 (dinogame), 098 (visaapplication),
+050 (streamview, interfacinglinux) and 007 (mailhub) on `sci_bench`: all four
+completed setup (state injection through `/api/state`) and evaluation with
+score 0 and no exception, 261 s in total.
