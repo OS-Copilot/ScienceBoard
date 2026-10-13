@@ -217,7 +217,7 @@ class VManager(Manager):
         completed = subprocess.run([
             "vmrun",
             "-T",
-            "ws",
+            "fusion" if sys.platform == "darwin" else "ws",
             "-gu",
             Prompts.VM_USERNAME,
             "-gp",
