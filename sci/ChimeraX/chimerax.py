@@ -50,7 +50,7 @@ class RawManager(Manager, ManagerMixin):
             "edu.ucsf.rbvi.ChimeraX"
         ]
     }
-    TIMEOUT = 15
+    TIMEOUT = 120  # GUI ChimeraX on macOS needs well over 15 s before the REST server line appears
     REST_FLAG: str = "REST server started"
     BASE_URL: Callable[[int], str] = lambda port: f"http://localhost:{port}/run"
     TOOL_URL: Callable[[str], str] = lambda version: \

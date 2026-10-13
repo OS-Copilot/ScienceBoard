@@ -94,3 +94,49 @@ about 2 min per task including the 55 s boot.
 - OSWorld-V2 delta (`guest/v2-delta-arm64.sh` is drafted, not run) and the
   osworld-server upgrade to the V2 pin.
 - The two hand-placed GRASS points of task D-04.
+
+## Real-model runs (2026-10-13, gpt-4o-2024-08-06 through the key-bank gateway)
+
+- Raw Lean A-01: passed in 80 s (5 tactic steps, DONE).
+- VM Lean A-01, Celestia A-01, KAlgebra A-01: all initialized, the model
+  produced pyautogui actions (15 to 65 code blocks per task), evaluation ran,
+  all three failed (two TIMEOUT, KAlgebra DONE but wrong). 49 min for the three.
+  This is a pipeline check, not a benchmark number.
+
+## ChimeraX on the host (Raw mode)
+
+ChimeraX has no Linux arm64 build, so ChimeraX tasks run natively on macOS:
+ChimeraX 1.9 (arm64) is installed in `/Applications/ChimeraX-1.9.app` with
+`chimerax` and `chimerax-daily` symlinks in `/opt/homebrew/bin` (the Raw
+manager's "daily" sort runs `chimerax-daily`). The 29 VM ChimeraX tasks were
+converted to Raw tasks in `.artifacts/tasks-raw-chimerax/` (sort Raw, version
+0.5, VM-only `execute`/`launch` steps dropped, guest asset paths rewritten to
+`.artifacts/chimerax-assets/`, which holds `vm_config/pack`'s ChimeraX files).
+The four TeXstudio+ChimeraX cross-app tasks and the Dual set still need
+ChimeraX inside the VM.
+
+Unattended Raw run of A-01 (debug/TIMEOUT): ChimeraX launched, the
+chimerax-states bundle installed, the task initialized (open 2olx, turn) and the
+state-based evaluation ran, 55 s, 0 skipped. `sci/ChimeraX/chimerax.py` had its
+REST startup timeout raised from 15 s to 120 s because GUI ChimeraX on this Mac
+needs more than 15 s before it prints the REST line (uncommitted). A real-model
+run additionally needs macOS Screen Recording and Accessibility permissions for
+the terminal that runs ScienceBoard, and a leftover ChimeraX holding port 8000
+makes the manager block in `readline()`; kill stray `chimerax-daily` processes
+before a run.
+
+## OSWorld-V2 on the unified VM (2026-10-13)
+
+Task classes (108) and the asset snapshot (4.6 GB) for osworld-v2.1 are in
+`~/Git-Repos/OSWorld-V2` (`evaluation_examples/task_class`,
+`cache/osworld_v2_assets_v2.1`). 7 tasks depend on the mocked websites and 2 on
+GitLab; 66 need only OSWorld-base applications; the rest need the V2 app delta
+(WPS 13, Shotcut 6, Zotero 5, REAPER 3, LabPlot 2, MuseScore 2, Obsidian 2,
+Blender 1).
+
+`v2_vmware_smoke.py` ran tasks 001, 002, 003 on `sci_bench` (VMware provider,
+client password `password`, `OSWORLD_FILE_BASE_URL` set): all three completed
+setup and evaluation with score 0 and no exception (415 s). Task 002's setup
+launches a task-local web app (`/tmp/Class-Planner/run.py`) that timed out
+after 120 s, so the V2 delta's Node.js/Python runtime pieces are still needed
+for such tasks.
