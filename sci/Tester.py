@@ -250,7 +250,8 @@ class Tester:
         optimize: bool = True,
         relative: bool = False,
         primitives: Set[str] = set(),
-        handle_managers: Callable = Presets.spawn_managers
+        handle_managers: Callable = Presets.spawn_managers,
+        extended_steps: bool = False,
     ) -> None:
         assert isinstance(tasks_path, str)
         tasks_path = os.path.expanduser(tasks_path)
@@ -315,6 +316,9 @@ class Tester:
         assert isinstance(debug, bool)
         self.debug = debug
 
+        assert isinstance(extended_steps, bool)
+        self.extended_steps = extended_steps
+
         assert isinstance(optimize, bool)
         self.optimize = optimize
 
@@ -363,7 +367,8 @@ class Tester:
             obs_types=self.obs_types,
             primitives=self.primitives,
             debug=self.debug,
-            relative=self.relative
+            relative=self.relative,
+            steps=200 if self.extended_steps else None,
         )
 
     def __traverse(self, current_infix: str = "") -> None:

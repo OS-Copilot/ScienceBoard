@@ -396,6 +396,12 @@ def parse_args() -> argparse.Namespace:
         help="Skip tasks that already have a result.out log.",
     )
     parser.add_argument("--debug", action="store_true", help="Complete tasks manually.")
+    parser.add_argument(
+        "--extended-steps",
+        action=argparse.BooleanOptionalAction,
+        default=env_bool("SCI_EXTENDED_STEPS", False),
+        help="Run tasks with 200 steps instead of the default 100.",
+    )
     parser.add_argument("--check", action="store_true", help="Validate configuration without running tasks.")
     args = parser.parse_args()
     if args.mode not in {"raw", "vm", "docker"}:
@@ -448,6 +454,7 @@ def main() -> int:
         headless=args.headless,
         ignore=args.ignore,
         debug=args.debug,
+        extended_steps=args.extended_steps,
         handle_managers=manager_factory,
     )()
     return 0

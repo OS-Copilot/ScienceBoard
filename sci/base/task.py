@@ -41,7 +41,8 @@ class Task:
         obs_types: Optional[Set[str]] = None,
         primitives: Set[str] = set(),
         debug: bool = False,
-        relative: bool = False
+        relative: bool = False,
+        steps: Optional[int] = None,
     ) -> None:
         assert isinstance(config_path, str)
         config_path = os.path.expanduser(config_path)
@@ -70,7 +71,7 @@ class Task:
             )
         }
 
-        self.__check_config()
+        self.__check_config(steps)
         if self.__class__ != Task:
             assert self.version == self.manager.version
         if self.available:
@@ -104,7 +105,7 @@ class Task:
         community = getattr(self, "community", None)
         return manager is not None and community is not None
 
-    def __check_config(self) -> None:
+    def __check_config(self, steps: Optional[int] = None) -> None:
         assert "type" in self.config
         self.type = self.config["type"]
         assert isinstance(self.type, str)
@@ -119,7 +120,7 @@ class Task:
         )
 
         assert "steps" in self.config
-        self.steps = self.config["steps"]
+        self.steps = 100 if steps is None else steps
         assert isinstance(self.steps, int)
 
         assert "instruction" in self.config
